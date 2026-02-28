@@ -1,0 +1,2418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KV Pathshala - Kendriya Vidyalaya Interactive Learning</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a5f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231e3a5f' width='100' height='100' rx='20'/><text x='50' y='65' font-size='40' text-anchor='middle' fill='white'>KV</text></svg>">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .page { display: none; }
+        .page.active { display: block; }
+        .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+        .sidebar.open { transform: translateX(0); }
+        .overlay { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .overlay.open { opacity: 1; pointer-events: auto; }
+        @keyframes tickPop { 0% { transform: scale(0); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .tick-animation { animation: tickPop 0.4s ease-out forwards; }
+        .shake-animation { animation: shake 0.3s ease-out; }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        .panel-mode { position: fixed; inset: 0; z-index: 100; background: white; }
+        .micro-step { transition: all 0.3s ease; }
+        .progress-fill { transition: width 0.5s ease; }
+        .dragging { opacity: 0.5; transform: scale(1.05); }
+        .drag-over { border-color: #3b82f6 !important; background: #eff6ff !important; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .install-prompt { animation: slideUp 0.5s ease-out; }
+        
+        /* ========================================================
+           MADE BY AXIS8 BADGE - START
+           This code creates the floating badge in bottom-left corner
+           ======================================================== */
+        .axis8-badge {
+            position: fixed;
+            bottom: 80px;
+            left: 12px;
+            z-index: 45;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border: 1px solid #475569;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            font-size: 11px;
+            color: #e2e8f0;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .axis8-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+        }
+        .axis8-badge .badge-logo {
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 8px;
+            color: white;
+        }
+        .axis8-badge .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        /* ========================================================
+           MADE BY AXIS8 BADGE - END
+           ======================================================== */
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <!-- ================================================================
+         LOGIN PAGE - Shows first before accessing the app
+         ================================================================ -->
+    <div id="loginPage" class="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <!-- School Logo & Branding -->
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-xl mb-4">
+                    <span class="text-blue-900 font-bold text-2xl">KV</span>
+                </div>
+                <h1 class="text-2xl font-bold text-white">KV Pathshala</h1>
+                <p class="text-blue-200 text-sm mt-1">Kendriya Vidyalaya Chabua • Tinsukia Region</p>
+            </div>
+
+            <!-- Login Card -->
+            <div class="bg-white rounded-2xl shadow-2xl p-6 slide-up">
+                <h2 class="text-xl font-semibold text-slate-800 mb-1">Welcome Back</h2>
+                <p class="text-slate-500 text-sm mb-6">Sign in to continue learning</p>
+
+                <!-- Login Form -->
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="space-y-4">
+                        <!-- User ID Field -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">User ID / Email</label>
+                            <div class="relative">
+                                <input type="text" id="loginUserId" placeholder="Enter your ID or email" 
+                                    class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    required>
+                                <svg class="w-5 h-5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Password Field -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                            <div class="relative">
+                                <input type="password" id="loginPassword" placeholder="Enter your password" 
+                                    class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    required>
+                                <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <svg id="eyeIcon" class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Remember Me & Forgot -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                <span class="text-sm text-slate-600">Remember me</span>
+                            </label>
+                            <a href="#" class="text-sm text-blue-600 hover:underline">Forgot password?</a>
+                        </div>
+
+                        <!-- Error Message -->
+                        <div id="loginError" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span id="loginErrorText">Invalid credentials</span>
+                        </div>
+
+                        <!-- Login Button -->
+                        <button type="submit" id="loginBtn" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                            <span>Sign In</span>
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Divider -->
+                <div class="flex items-center gap-4 my-6">
+                    <div class="flex-1 h-px bg-slate-200"></div>
+                    <span class="text-xs text-slate-400 uppercase">Demo Accounts</span>
+                    <div class="flex-1 h-px bg-slate-200"></div>
+                </div>
+
+                <!-- Class Selection for Student Login -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Select Class (for Student Demo)</label>
+                    <div class="grid grid-cols-5 gap-2" id="loginClassSelector">
+                        <button type="button" onclick="selectLoginClass(6)" class="login-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors">
+                            <span class="text-sm font-bold text-slate-600">VI</span>
+                        </button>
+                        <button type="button" onclick="selectLoginClass(7)" class="login-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors">
+                            <span class="text-sm font-bold text-slate-600">VII</span>
+                        </button>
+                        <button type="button" onclick="selectLoginClass(8)" class="login-class-btn p-2 border-2 border-blue-500 bg-blue-50 rounded-lg text-center">
+                            <span class="text-sm font-bold text-blue-700">VIII</span>
+                        </button>
+                        <button type="button" onclick="selectLoginClass(9)" class="login-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors">
+                            <span class="text-sm font-bold text-slate-600">IX</span>
+                        </button>
+                        <button type="button" onclick="selectLoginClass(10)" class="login-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors">
+                            <span class="text-sm font-bold text-slate-600">X</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Login Buttons (Demo) -->
+                <div class="space-y-2">
+                    <button onclick="quickLogin('student')" class="w-full py-3 px-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-3">
+                        <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                            <span class="text-emerald-700 font-semibold text-sm">A</span>
+                        </div>
+                        <div class="text-left flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Arjun Sharma</p>
+                            <p class="text-xs text-slate-500">Student • <span id="studentDemoClass">Class VIII-A</span></p>
+                        </div>
+                        <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">Student</span>
+                    </button>
+
+                    <button onclick="quickLogin('teacher')" class="w-full py-3 px-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span class="text-blue-700 font-semibold text-sm">R</span>
+                        </div>
+                        <div class="text-left flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Mr. Rajesh Verma</p>
+                            <p class="text-xs text-slate-500">Teacher • Mathematics</p>
+                        </div>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Teacher</span>
+                    </button>
+
+                    <button onclick="quickLogin('admin')" class="w-full py-3 px-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span class="text-purple-700 font-semibold text-sm">P</span>
+                        </div>
+                        <div class="text-left flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Mrs. Priya Das</p>
+                            <p class="text-xs text-slate-500">Principal • Administrator</p>
+                        </div>
+                        <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">Admin</span>
+                    </button>
+                </div>
+
+                <!-- Help Text -->
+                <p class="text-center text-xs text-slate-400 mt-6">
+                    Having trouble? Contact your class teacher or school admin
+                </p>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-6">
+                <p class="text-blue-200 text-xs">© 2024 Kendriya Vidyalaya Sangathan</p>
+                <p class="text-blue-300/50 text-xs mt-1">Prototype by Axis8</p>
+            </div>
+        </div>
+    </div>
+    <!-- ================================================================
+         END OF LOGIN PAGE
+         ================================================================ -->
+
+    <!-- ================================================================
+         MAIN APP CONTAINER (Hidden until login)
+         ================================================================ -->
+    <div id="appContainer" class="hidden">
+    
+    <!-- ================================================================
+         MADE BY AXIS8 BADGE - HTML ELEMENT
+         This is the visible badge that appears on the page
+         ================================================================ -->
+    <a href="#" target="_blank" rel="noopener noreferrer" class="axis8-badge" title="Built by Axis8">
+        <div class="pulse-dot"></div>
+        <div class="badge-logo">A8</div>
+        <span>Made by <strong>Axis8</strong></span>
+    </a>
+    <!-- ================================================================
+         END OF MADE BY AXIS8 BADGE
+         ================================================================ -->
+
+    <!-- Install Prompt Banner -->
+    <div id="installPrompt" class="hidden fixed top-0 left-0 right-0 z-50 bg-blue-900 text-white p-4 install-prompt">
+        <div class="max-w-lg mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
+                    <span class="text-blue-900 font-bold text-sm">KV</span>
+                </div>
+                <div>
+                    <p class="font-semibold text-sm">Install KV Pathshala</p>
+                    <p class="text-xs text-blue-200">Access offline & get faster experience</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="dismissInstall()" class="px-3 py-1.5 text-sm text-blue-200 hover:text-white">Later</button>
+                <button onclick="installApp()" class="px-4 py-1.5 bg-white text-blue-800 rounded-lg text-sm font-medium">Install</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prototype Notification -->
+    <div id="prototypeNotice" class="fixed top-4 left-4 right-4 z-50 max-w-md mx-auto">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 shadow-lg slide-up">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span class="text-white font-bold text-xs">KV</span>
+                </div>
+                <div class="flex-1">
+                    <h4 class="font-semibold text-blue-900 text-sm">KV Pathshala - Prototype</h4>
+                    <p class="text-blue-700 text-xs mt-1">Demo for <strong>Kendriya Vidyalaya Chabua</strong>, Tinsukia Region. All student data is simulated for demonstration.</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">CBSE Aligned</span>
+                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs rounded-full font-medium">NCERT Books</span>
+                        <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-xs rounded-full font-medium">Tinsukia Region</span>
+                    </div>
+                </div>
+                <button onclick="closePrototypeNotice()" class="text-blue-400 hover:text-blue-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" class="overlay fixed inset-0 bg-black/50 z-40" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar fixed left-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl overflow-y-auto">
+        <div class="p-5 border-b border-slate-100 bg-gradient-to-r from-blue-900 to-blue-800">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-md">
+                    <span class="text-blue-900 font-bold text-sm">KV</span>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white">KV Pathshala</h1>
+                    <p class="text-xs text-blue-200">Kendriya Vidyalaya Chabua • Tinsukia Region</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Profile -->
+        <div class="p-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div id="sidebarAvatar" class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <span class="text-emerald-700 font-semibold">A</span>
+                </div>
+                <div>
+                    <p id="sidebarName" class="font-medium text-slate-800 text-sm">Arjun Sharma</p>
+                    <p id="sidebarRole" class="text-xs text-slate-500">Student • Class VIII-A • KV Chabua</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Role Switcher -->
+        <div class="p-4 border-b border-slate-100">
+            <p class="text-xs font-medium text-slate-400 uppercase mb-2">Switch Role (Demo)</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="switchRole('student')" class="role-btn px-3 py-2 rounded-lg text-xs font-medium border transition-all" data-role="student">Student</button>
+                <button onclick="switchRole('teacher')" class="role-btn px-3 py-2 rounded-lg text-xs font-medium border transition-all" data-role="teacher">Teacher</button>
+                <button onclick="switchRole('admin')" class="role-btn px-3 py-2 rounded-lg text-xs font-medium border transition-all" data-role="admin">Admin</button>
+                <button onclick="switchRole('panel')" class="role-btn px-3 py-2 rounded-lg text-xs font-medium border transition-all" data-role="panel">Panel Mode</button>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="p-4">
+            <p class="text-xs font-medium text-slate-400 uppercase mb-2">Navigation</p>
+            <ul class="space-y-1">
+                <li><a onclick="navigateTo('home'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    Dashboard
+                </a></li>
+                <li><a onclick="navigateTo('lessons'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    Lessons
+                </a></li>
+                <li><a onclick="navigateTo('timetable'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Timetable
+                </a></li>
+                <li><a onclick="navigateTo('homework'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    Homework & Tasks
+                </a></li>
+                <li><a onclick="navigateTo('progress'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    Progress
+                </a></li>
+            </ul>
+
+            <p class="text-xs font-medium text-slate-400 uppercase mb-2 mt-6">Languages</p>
+            <ul class="space-y-1">
+                <li><a onclick="navigateTo('language'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                    Language Learning
+                </a></li>
+            </ul>
+
+            <p class="text-xs font-medium text-slate-400 uppercase mb-2 mt-6">More</p>
+            <ul class="space-y-1">
+                <li><a onclick="navigateTo('settings'); closeSidebar();" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Settings
+                </a></li>
+                <li><a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Help & Support
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Offline Status -->
+        <div class="p-4 mt-auto border-t border-slate-100">
+            <div id="connectionStatus" class="flex items-center gap-2 text-sm">
+                <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <span class="text-slate-600">Online</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main id="mainContent" class="pb-20">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-100 sticky top-0 z-30">
+            <div class="flex items-center justify-between px-4 py-3">
+                <button onclick="openSidebar()" class="p-2 -ml-2 rounded-lg hover:bg-slate-50">
+                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <h2 id="pageTitle" class="font-semibold text-slate-800">Dashboard</h2>
+                <button class="p-2 -mr-2 rounded-lg hover:bg-slate-50 relative">
+                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Page: Home/Dashboard -->
+        <section id="page-home" class="page active px-4 py-4">
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-slate-800">Good Morning, <span id="userName">Arjun</span>!</h3>
+                <p class="text-slate-500 text-sm mt-1">Continue where you left off</p>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="bg-blue-50 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-blue-700">12</p>
+                    <p class="text-xs text-blue-600">Lessons Done</p>
+                </div>
+                <div class="bg-emerald-50 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-emerald-700">85%</p>
+                    <p class="text-xs text-emerald-600">Accuracy</p>
+                </div>
+                <div class="bg-amber-50 rounded-xl p-3 text-center">
+                    <p class="text-2xl font-bold text-amber-700">3</p>
+                    <p class="text-xs text-amber-600">Tasks Due</p>
+                </div>
+            </div>
+
+            <!-- Continue Learning -->
+            <div class="mb-6">
+                <h4 class="font-semibold text-slate-700 mb-3">Continue Learning</h4>
+                <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-indigo-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Mathematics • Chapter 5</p>
+                            <p class="text-sm text-slate-500">Quadratic Equations</p>
+                            <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-indigo-500 rounded-full progress-fill" style="width: 65%"></div>
+                            </div>
+                        </div>
+                        <button onclick="startLesson('math')" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                            Continue
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Schedule -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold text-slate-700">Today's Schedule</h4>
+                    <a onclick="navigateTo('timetable')" class="text-blue-600 text-sm cursor-pointer">View All</a>
+                </div>
+                <div class="space-y-2">
+                    <div class="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3">
+                        <div class="w-1 h-12 bg-blue-500 rounded-full"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800 text-sm">English Literature</p>
+                            <p class="text-xs text-slate-500">8:30 AM - 9:15 AM</p>
+                        </div>
+                        <span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">Completed</span>
+                    </div>
+                    <div class="bg-white rounded-xl border border-blue-200 p-3 flex items-center gap-3 bg-blue-50/50">
+                        <div class="w-1 h-12 bg-indigo-500 rounded-full"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Mathematics</p>
+                            <p class="text-xs text-slate-500">9:20 AM - 10:05 AM</p>
+                        </div>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">Now</span>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3">
+                        <div class="w-1 h-12 bg-emerald-500 rounded-full"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Science</p>
+                            <p class="text-xs text-slate-500">10:20 AM - 11:05 AM</p>
+                        </div>
+                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-full">Upcoming</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Homework -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="font-semibold text-slate-700">Pending Tasks</h4>
+                    <a onclick="navigateTo('homework')" class="text-blue-600 text-sm cursor-pointer">View All</a>
+                </div>
+                <div class="space-y-2">
+                    <div class="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3">
+                        <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Complete Exercise 5.3</p>
+                            <p class="text-xs text-slate-500">Mathematics • Due Tomorrow</p>
+                        </div>
+                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">Due Soon</span>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3">
+                        <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800 text-sm">Read Chapter 8</p>
+                            <p class="text-xs text-slate-500">Hindi • Due in 2 days</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teacher-only Panel Mode Button -->
+            <div id="teacherPanelBtn" class="hidden mt-6">
+                <button onclick="enterPanelMode()" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-shadow">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Launch Panel Mode
+                </button>
+            </div>
+        </section>
+
+        <!-- Page: Lessons (Syllabus Navigation) -->
+        <section id="page-lessons" class="page px-4 py-4">
+            <div id="lessonsNav">
+                <!-- Class Selection -->
+                <div id="classSelection" class="mb-6">
+                    <h4 class="font-semibold text-slate-700 mb-3">Select Class</h4>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="selectClass(6)" class="class-btn p-4 bg-white border-2 border-slate-200 rounded-xl text-center hover:border-blue-300 transition-colors">
+                            <span class="text-lg font-bold text-slate-700">6</span>
+                            <p class="text-xs text-slate-500">Class</p>
+                        </button>
+                        <button onclick="selectClass(7)" class="class-btn p-4 bg-white border-2 border-slate-200 rounded-xl text-center hover:border-blue-300 transition-colors">
+                            <span class="text-lg font-bold text-slate-700">7</span>
+                            <p class="text-xs text-slate-500">Class</p>
+                        </button>
+                        <button onclick="selectClass(8)" class="class-btn p-4 bg-blue-50 border-2 border-blue-500 rounded-xl text-center">
+                            <span class="text-lg font-bold text-blue-700">8</span>
+                            <p class="text-xs text-blue-600">Class</p>
+                        </button>
+                        <button onclick="selectClass(9)" class="class-btn p-4 bg-white border-2 border-slate-200 rounded-xl text-center hover:border-blue-300 transition-colors">
+                            <span class="text-lg font-bold text-slate-700">9</span>
+                            <p class="text-xs text-slate-500">Class</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Subjects -->
+                <div id="subjectsSection">
+                    <h4 class="font-semibold text-slate-700 mb-3">Subjects - Class 8</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="selectSubject('math')" class="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-blue-300 hover:shadow-sm transition-all">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            </div>
+                            <p class="font-medium text-slate-800">Mathematics</p>
+                            <p class="text-xs text-slate-500">14 Chapters</p>
+                        </button>
+                        <button onclick="selectSubject('science')" class="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-blue-300 hover:shadow-sm transition-all">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                            </div>
+                            <p class="font-medium text-slate-800">Science</p>
+                            <p class="text-xs text-slate-500">16 Chapters</p>
+                        </button>
+                        <button onclick="selectSubject('english')" class="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-blue-300 hover:shadow-sm transition-all">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            </div>
+                            <p class="font-medium text-slate-800">English</p>
+                            <p class="text-xs text-slate-500">12 Chapters</p>
+                        </button>
+                        <button onclick="selectSubject('hindi')" class="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-blue-300 hover:shadow-sm transition-all">
+                            <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mb-2">
+                                <span class="text-orange-600 font-bold">हि</span>
+                            </div>
+                            <p class="font-medium text-slate-800">Hindi</p>
+                            <p class="text-xs text-slate-500">10 Chapters</p>
+                        </button>
+                        <button onclick="selectSubject('sanskrit')" class="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-blue-300 hover:shadow-sm transition-all">
+                            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mb-2">
+                                <span class="text-amber-600 font-bold">सं</span>
+                            </div>
+                            <p class="font-medium text-slate-800">Sanskrit</p>
+                            <p class="text-xs text-slate-500">8 Chapters</p>
+                        </button>
+                        <button onclick="selectSubject('social')" class="p-4 bg-white border border-slate-200 rounded-xl text-left hover:border-blue-300 hover:shadow-sm transition-all">
+                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <p class="font-medium text-slate-800">Social Science</p>
+                            <p class="text-xs text-slate-500">12 Chapters</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chapters View (hidden by default) -->
+            <div id="chaptersView" class="hidden">
+                <button onclick="backToSubjects()" class="flex items-center gap-2 text-blue-600 mb-4">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    Back to Subjects
+                </button>
+                <h4 id="chapterTitle" class="font-semibold text-slate-700 mb-3">Mathematics - Chapters</h4>
+                <div id="chaptersList" class="space-y-2"></div>
+            </div>
+
+            <!-- Lessons View (hidden by default) -->
+            <div id="lessonsView" class="hidden">
+                <button onclick="backToChapters()" class="flex items-center gap-2 text-blue-600 mb-4">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    Back to Chapters
+                </button>
+                <h4 id="lessonTitle" class="font-semibold text-slate-700 mb-3">Chapter Lessons</h4>
+                <div id="lessonsList" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- Page: Timetable -->
+        <section id="page-timetable" class="page px-4 py-4">
+            <div class="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                <button class="day-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium whitespace-nowrap">Mon</button>
+                <button class="day-btn px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium whitespace-nowrap">Tue</button>
+                <button class="day-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium whitespace-nowrap">Wed</button>
+                <button class="day-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium whitespace-nowrap">Thu</button>
+                <button class="day-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium whitespace-nowrap">Fri</button>
+                <button class="day-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium whitespace-nowrap">Sat</button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-slate-800">8:30</p>
+                            <p class="text-xs text-slate-500">9:15</p>
+                        </div>
+                        <div class="w-1 bg-blue-500 rounded-full self-stretch"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">English Literature</p>
+                            <p class="text-sm text-slate-500">Chapter 6: The Last Leaf</p>
+                            <p class="text-xs text-slate-400 mt-1">Room 8A • Mrs. Sharma</p>
+                        </div>
+                        <a href="#" class="text-blue-600 text-sm">Join</a>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-blue-800">9:20</p>
+                            <p class="text-xs text-blue-600">10:05</p>
+                        </div>
+                        <div class="w-1 bg-indigo-500 rounded-full self-stretch"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Mathematics</p>
+                            <p class="text-sm text-slate-500">Quadratic Equations</p>
+                            <p class="text-xs text-slate-400 mt-1">Room 8A • Mr. Verma</p>
+                        </div>
+                        <span class="px-2 py-1 bg-blue-200 text-blue-800 text-xs rounded-full font-medium">Live</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-slate-800">10:20</p>
+                            <p class="text-xs text-slate-500">11:05</p>
+                        </div>
+                        <div class="w-1 bg-emerald-500 rounded-full self-stretch"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Science</p>
+                            <p class="text-sm text-slate-500">Chemical Reactions</p>
+                            <p class="text-xs text-slate-400 mt-1">Lab 2 • Dr. Patel</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 rounded-xl border border-amber-200 p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-amber-800">11:05</p>
+                            <p class="text-xs text-amber-600">11:20</p>
+                        </div>
+                        <div class="w-1 bg-amber-400 rounded-full h-8"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-amber-800">Short Break</p>
+                            <p class="text-sm text-amber-600">15 minutes</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-slate-800">11:20</p>
+                            <p class="text-xs text-slate-500">12:05</p>
+                        </div>
+                        <div class="w-1 bg-orange-500 rounded-full self-stretch"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Hindi</p>
+                            <p class="text-sm text-slate-500">पाठ 5: साखी</p>
+                            <p class="text-xs text-slate-400 mt-1">Room 8A • Ms. Gupta</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-semibold text-slate-800">12:10</p>
+                            <p class="text-xs text-slate-500">12:55</p>
+                        </div>
+                        <div class="w-1 bg-purple-500 rounded-full self-stretch"></div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Social Science</p>
+                            <p class="text-sm text-slate-500">Indian Freedom Movement</p>
+                            <p class="text-xs text-slate-400 mt-1">Room 8A • Mr. Singh</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Homework -->
+        <section id="page-homework" class="page px-4 py-4">
+            <div class="flex items-center gap-2 mb-4">
+                <button class="filter-btn px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">All</button>
+                <button class="filter-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium">Pending</button>
+                <button class="filter-btn px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-medium">Completed</button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Complete Exercise 5.3 (Q1-10)</p>
+                            <p class="text-sm text-slate-500 mt-1">Mathematics • Chapter 5</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">Due Tomorrow</span>
+                                <span class="text-xs text-slate-400">Assigned by Mr. Verma</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Read Chapter 8 and write summary</p>
+                            <p class="text-sm text-slate-500 mt-1">Hindi • पाठ 8</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">Due in 2 days</span>
+                                <span class="text-xs text-slate-400">Assigned by Ms. Gupta</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Prepare lab report - Chemical Reactions</p>
+                            <p class="text-sm text-slate-500 mt-1">Science • Chapter 4</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">Due in 5 days</span>
+                                <span class="text-xs text-slate-400">Assigned by Dr. Patel</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4 opacity-60">
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" checked class="w-5 h-5 mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800 line-through">Learn poem - The Road Not Taken</p>
+                            <p class="text-sm text-slate-500 mt-1">English • Chapter 6</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Completed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Task Button -->
+            <button class="fixed bottom-24 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            </button>
+        </section>
+
+        <!-- Page: Progress -->
+        <section id="page-progress" class="page px-4 py-4">
+            <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 text-white mb-6">
+                <p class="text-blue-200 text-sm">This Week's Progress</p>
+                <p class="text-3xl font-bold mt-1">24 Lessons</p>
+                <p class="text-blue-200 text-sm mt-1">+8 from last week</p>
+                <div class="mt-4 flex gap-1">
+                    <div class="flex-1 h-2 bg-blue-400/30 rounded-full overflow-hidden">
+                        <div class="h-full bg-white rounded-full" style="width: 85%"></div>
+                    </div>
+                </div>
+                <p class="text-xs text-blue-200 mt-2">85% of weekly goal reached</p>
+            </div>
+
+            <h4 class="font-semibold text-slate-700 mb-3">Subject Progress</h4>
+            <div class="space-y-3">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">Mathematics</p>
+                                <p class="text-xs text-slate-500">5 of 14 chapters</p>
+                            </div>
+                        </div>
+                        <span class="text-indigo-600 font-semibold">36%</span>
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-indigo-500 rounded-full progress-fill" style="width: 36%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">Science</p>
+                                <p class="text-xs text-slate-500">7 of 16 chapters</p>
+                            </div>
+                        </div>
+                        <span class="text-emerald-600 font-semibold">44%</span>
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full progress-fill" style="width: 44%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">English</p>
+                                <p class="text-xs text-slate-500">8 of 12 chapters</p>
+                            </div>
+                        </div>
+                        <span class="text-blue-600 font-semibold">67%</span>
+                    </div>
+                    <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-500 rounded-full progress-fill" style="width: 67%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Language Learning -->
+        <section id="page-language" class="page px-4 py-4">
+            <h4 class="font-semibold text-slate-700 mb-3">Language Courses</h4>
+            <div class="space-y-3">
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl font-bold text-blue-600">A</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">English Grammar</p>
+                            <p class="text-sm text-slate-500">Tenses, Articles, Voice</p>
+                            <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full" style="width: 72%"></div>
+                            </div>
+                        </div>
+                        <button onclick="startLesson('english')" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg">Start</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl font-bold text-orange-600">हि</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Hindi Vyakaran</p>
+                            <p class="text-sm text-slate-500">संज्ञा, सर्वनाम, क्रिया</p>
+                            <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-orange-500 rounded-full" style="width: 45%"></div>
+                            </div>
+                        </div>
+                        <button onclick="startLesson('hindi')" class="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg">Start</button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center">
+                            <span class="text-2xl font-bold text-amber-600">सं</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium text-slate-800">Sanskrit</p>
+                            <p class="text-sm text-slate-500">शब्द रूप, धातु रूप</p>
+                            <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full bg-amber-500 rounded-full" style="width: 28%"></div>
+                            </div>
+                        </div>
+                        <button onclick="startLesson('sanskrit')" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg">Start</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Page: Settings -->
+        <section id="page-settings" class="page px-4 py-4">
+            <div class="space-y-4">
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100">
+                        <p class="font-semibold text-slate-700">Account</p>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                                    <span class="text-emerald-700 font-semibold">A</span>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-slate-800 text-sm">Arjun Sharma</p>
+                                    <p class="text-xs text-slate-500">arjun.sharma@school.edu</p>
+                                </div>
+                            </div>
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100">
+                        <p class="font-semibold text-slate-700">Preferences</p>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Language</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-slate-500">English</span>
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Notifications</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Offline Mode</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Low Bandwidth Mode</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 bg-gradient-to-r from-blue-900 to-blue-800">
+                        <p class="font-semibold text-white">Kendriya Vidyalaya Chabua</p>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">School Name</span>
+                            <span class="text-sm text-slate-500 font-medium">Kendriya Vidyalaya Chabua</span>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Region</span>
+                            <span class="text-sm text-slate-500">Tinsukia Region, Assam</span>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">KVS Code</span>
+                            <span class="text-sm text-slate-500">07005</span>
+                        </div>
+                        <div class="px-4 py-3">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm text-slate-700">Class & Section</span>
+                                <span id="settingsCurrentClass" class="text-sm font-medium text-blue-600">VIII-A</span>
+                            </div>
+                            <!-- Class Switcher in Settings -->
+                            <div class="mt-2">
+                                <p class="text-xs text-slate-400 mb-2">Switch Class (Demo)</p>
+                                <div class="grid grid-cols-5 gap-2" id="settingsClassSelector">
+                                    <button onclick="switchClass(6)" class="settings-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors text-xs font-bold text-slate-600">VI</button>
+                                    <button onclick="switchClass(7)" class="settings-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors text-xs font-bold text-slate-600">VII</button>
+                                    <button onclick="switchClass(8)" class="settings-class-btn p-2 border-2 border-blue-500 bg-blue-50 rounded-lg text-center text-xs font-bold text-blue-700">VIII</button>
+                                    <button onclick="switchClass(9)" class="settings-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors text-xs font-bold text-slate-600">IX</button>
+                                    <button onclick="switchClass(10)" class="settings-class-btn p-2 border-2 border-slate-200 rounded-lg text-center hover:border-blue-300 transition-colors text-xs font-bold text-slate-600">X</button>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="block text-xs text-slate-400 mb-1">Section</label>
+                                    <div class="flex gap-2">
+                                        <button onclick="switchSection('A')" class="section-btn flex-1 py-2 border-2 border-blue-500 bg-blue-50 rounded-lg text-xs font-bold text-blue-700">A</button>
+                                        <button onclick="switchSection('B')" class="section-btn flex-1 py-2 border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-blue-300 transition-colors">B</button>
+                                        <button onclick="switchSection('C')" class="section-btn flex-1 py-2 border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-blue-300 transition-colors">C</button>
+                                        <button onclick="switchSection('D')" class="section-btn flex-1 py-2 border-2 border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-blue-300 transition-colors">D</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Board</span>
+                            <span class="text-sm font-medium text-blue-600">CBSE</span>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Session</span>
+                            <span class="text-sm text-slate-500">2024-25</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100">
+                        <p class="font-semibold text-slate-700">About</p>
+                    </div>
+                    <div class="divide-y divide-slate-100">
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Version</span>
+                            <span class="text-sm text-slate-500">1.0.0 (Prototype)</span>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Privacy Policy</span>
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-3">
+                            <span class="text-sm text-slate-700">Terms of Service</span>
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="handleLogout()" class="w-full py-3 text-red-600 font-medium text-sm">Sign Out</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30">
+        <div class="flex items-center justify-around py-2">
+            <button onclick="navigateTo('home')" class="nav-btn flex flex-col items-center py-2 px-4" data-page="home">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-xs mt-1">Home</span>
+            </button>
+            <button onclick="navigateTo('lessons')" class="nav-btn flex flex-col items-center py-2 px-4" data-page="lessons">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                <span class="text-xs mt-1">Lessons</span>
+            </button>
+            <button onclick="navigateTo('timetable')" class="nav-btn flex flex-col items-center py-2 px-4" data-page="timetable">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="text-xs mt-1">Schedule</span>
+            </button>
+            <button onclick="navigateTo('homework')" class="nav-btn flex flex-col items-center py-2 px-4" data-page="homework">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                <span class="text-xs mt-1">Tasks</span>
+            </button>
+            <button onclick="navigateTo('settings')" class="nav-btn flex flex-col items-center py-2 px-4" data-page="settings">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span class="text-xs mt-1">Settings</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Panel Mode (Fullscreen Lesson) -->
+    <div id="panelMode" class="panel-mode hidden">
+        <div class="h-full flex flex-col bg-slate-50">
+            <!-- Panel Header -->
+            <div class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <button onclick="exitPanelMode()" class="p-2 rounded-lg hover:bg-slate-100">
+                        <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                    <div>
+                        <h2 id="panelLessonTitle" class="font-semibold text-slate-800">Quadratic Equations</h2>
+                        <p id="panelLessonSubtitle" class="text-sm text-slate-500">Mathematics • Chapter 5 • Lesson 3</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div id="panelProgress" class="flex items-center gap-2">
+                        <span class="text-sm text-slate-600">Step <span id="currentStep">1</span> of <span id="totalSteps">8</span></span>
+                        <div class="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div id="panelProgressBar" class="h-full bg-blue-600 rounded-full transition-all duration-500" style="width: 12.5%"></div>
+                        </div>
+                    </div>
+                    <div id="teacherControls" class="flex items-center gap-2">
+                        <button onclick="prevStep()" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200" disabled id="prevBtn">
+                            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button onclick="nextStep()" class="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white" id="nextBtn">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Content -->
+            <div class="flex-1 flex items-center justify-center p-8 overflow-auto">
+                <div id="microInteraction" class="w-full max-w-3xl"></div>
+            </div>
+
+            <!-- Panel Footer (Teacher Only) -->
+            <div id="panelFooter" class="bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm text-slate-500">Teacher Controls</span>
+                    <button onclick="resetLesson()" class="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Reset Lesson</button>
+                    <button onclick="showAllAnswers()" class="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Reveal Answers</button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="verifyVerbal()" id="verifyBtn" class="hidden px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700">
+                        ✓ Verify Student Answer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+    <!-- ================================================================
+         END OF MAIN APP CONTAINER
+         ================================================================ -->
+
+    <script>
+        // App State
+        let currentPage = 'home';
+        let currentRole = 'student';
+        let currentStep = 0;
+        let lessonSteps = [];
+        let deferredPrompt = null;
+        let currentUser = null;
+        let isLoggedIn = false;
+        let selectedLoginClass = 8;
+        let selectedSection = 'A';
+
+        // Class number to Roman numeral mapping
+        const classRomanMap = {
+            6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X', 11: 'XI', 12: 'XII'
+        };
+
+        // ================================================================
+        // CLASS SWITCH FUNCTIONS
+        // ================================================================
+        function selectLoginClass(classNum) {
+            selectedLoginClass = classNum;
+            
+            // Update button styles
+            document.querySelectorAll('.login-class-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50');
+                btn.classList.add('border-slate-200');
+                btn.querySelector('span').classList.remove('text-blue-700');
+                btn.querySelector('span').classList.add('text-slate-600');
+            });
+            
+            // Find and highlight selected button
+            const buttons = document.querySelectorAll('.login-class-btn');
+            const classIndex = [6, 7, 8, 9, 10].indexOf(classNum);
+            if (classIndex >= 0 && buttons[classIndex]) {
+                buttons[classIndex].classList.add('border-blue-500', 'bg-blue-50');
+                buttons[classIndex].classList.remove('border-slate-200');
+                buttons[classIndex].querySelector('span').classList.add('text-blue-700');
+                buttons[classIndex].querySelector('span').classList.remove('text-slate-600');
+            }
+            
+            // Update demo student class display
+            const demoClassLabel = document.getElementById('studentDemoClass');
+            if (demoClassLabel) {
+                demoClassLabel.textContent = `Class ${classRomanMap[classNum]}-A`;
+            }
+        }
+
+        function switchClass(classNum) {
+            if (!currentUser) return;
+            
+            selectedLoginClass = classNum;
+            currentUser.class = `${classRomanMap[classNum]}-${selectedSection}`;
+            
+            // Update button styles in settings
+            document.querySelectorAll('.settings-class-btn').forEach((btn, i) => {
+                const classes = [6, 7, 8, 9, 10];
+                if (classes[i] === classNum) {
+                    btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.remove('border-slate-200', 'text-slate-600');
+                } else {
+                    btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.add('border-slate-200', 'text-slate-600');
+                }
+            });
+            
+            // Update display
+            updateClassDisplay();
+            
+            // Save to session
+            sessionStorage.setItem('kvPathshalaUser', JSON.stringify(currentUser));
+            
+            // Show confirmation
+            showClassChangeNotification(classNum, selectedSection);
+        }
+
+        function switchSection(section) {
+            if (!currentUser) return;
+            
+            selectedSection = section;
+            currentUser.class = `${classRomanMap[selectedLoginClass]}-${section}`;
+            currentUser.section = section;
+            
+            // Update button styles
+            document.querySelectorAll('.section-btn').forEach(btn => {
+                if (btn.textContent.trim() === section) {
+                    btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.remove('border-slate-200', 'text-slate-600');
+                } else {
+                    btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.add('border-slate-200', 'text-slate-600');
+                }
+            });
+            
+            // Update display
+            updateClassDisplay();
+            
+            // Save to session
+            sessionStorage.setItem('kvPathshalaUser', JSON.stringify(currentUser));
+            
+            // Show confirmation
+            showClassChangeNotification(selectedLoginClass, section);
+        }
+
+        function updateClassDisplay() {
+            if (!currentUser) return;
+            
+            // Update settings current class
+            const settingsClass = document.getElementById('settingsCurrentClass');
+            if (settingsClass) {
+                settingsClass.textContent = currentUser.class;
+            }
+            
+            // Update sidebar
+            updateUIWithUserData();
+            
+            // Update lessons page class selector
+            updateLessonsClassSelector();
+        }
+
+        function updateLessonsClassSelector() {
+            const classNum = selectedLoginClass;
+            document.querySelectorAll('.class-btn').forEach((btn, i) => {
+                const classes = [6, 7, 8, 9];
+                if (classes[i] === classNum) {
+                    btn.classList.add('bg-blue-50', 'border-blue-500');
+                    btn.classList.remove('bg-white', 'border-slate-200');
+                    btn.querySelector('span').classList.add('text-blue-700');
+                    btn.querySelector('span').classList.remove('text-slate-700');
+                    btn.querySelector('p').classList.add('text-blue-600');
+                    btn.querySelector('p').classList.remove('text-slate-500');
+                } else {
+                    btn.classList.remove('bg-blue-50', 'border-blue-500');
+                    btn.classList.add('bg-white', 'border-slate-200');
+                    btn.querySelector('span').classList.remove('text-blue-700');
+                    btn.querySelector('span').classList.add('text-slate-700');
+                    btn.querySelector('p').classList.remove('text-blue-600');
+                    btn.querySelector('p').classList.add('text-slate-500');
+                }
+            });
+            
+            // Update subjects section title
+            const subjectsTitle = document.querySelector('#subjectsSection h4');
+            if (subjectsTitle) {
+                subjectsTitle.textContent = `Subjects - Class ${classNum}`;
+            }
+        }
+
+        function showClassChangeNotification(classNum, section) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-24 left-4 right-4 max-w-sm mx-auto bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-lg z-50 slide-up flex items-center gap-3';
+            notification.innerHTML = `
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="text-sm font-medium">Switched to Class ${classRomanMap[classNum]}-${section}</span>
+            `;
+            document.body.appendChild(notification);
+            
+            // Remove after 2 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(20px)';
+                notification.style.transition = 'all 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
+        // ================================================================
+        // USER DATABASE - Demo accounts with credentials and profile data
+        // ================================================================
+        const usersDatabase = {
+            // Students
+            'arjun': {
+                id: 'arjun',
+                password: 'student123',
+                role: 'student',
+                name: 'Arjun Sharma',
+                firstName: 'Arjun',
+                email: 'arjun.sharma@kvchabua.edu.in',
+                avatar: 'A',
+                avatarBg: 'bg-emerald-100',
+                avatarText: 'text-emerald-700',
+                class: 'VIII-A',
+                rollNo: '15',
+                section: 'A',
+                subjects: ['Mathematics', 'Science', 'English', 'Hindi', 'Social Science', 'Sanskrit'],
+                stats: { lessonsCompleted: 12, accuracy: 85, tasksDue: 3 }
+            },
+            'priya': {
+                id: 'priya',
+                password: 'student123',
+                role: 'student',
+                name: 'Priya Gogoi',
+                firstName: 'Priya',
+                email: 'priya.gogoi@kvchabua.edu.in',
+                avatar: 'P',
+                avatarBg: 'bg-pink-100',
+                avatarText: 'text-pink-700',
+                class: 'VIII-A',
+                rollNo: '22',
+                section: 'A',
+                subjects: ['Mathematics', 'Science', 'English', 'Hindi', 'Social Science', 'Sanskrit'],
+                stats: { lessonsCompleted: 18, accuracy: 92, tasksDue: 1 }
+            },
+            // Teachers
+            'rajesh': {
+                id: 'rajesh',
+                password: 'teacher123',
+                role: 'teacher',
+                name: 'Mr. Rajesh Verma',
+                firstName: 'Mr. Verma',
+                email: 'rajesh.verma@kvchabua.edu.in',
+                avatar: 'R',
+                avatarBg: 'bg-blue-100',
+                avatarText: 'text-blue-700',
+                department: 'Mathematics',
+                classes: ['VIII-A', 'VIII-B', 'IX-A'],
+                subjects: ['Mathematics'],
+                employeeId: 'KV07005-T012'
+            },
+            'sunita': {
+                id: 'sunita',
+                password: 'teacher123',
+                role: 'teacher',
+                name: 'Mrs. Sunita Sharma',
+                firstName: 'Mrs. Sharma',
+                email: 'sunita.sharma@kvchabua.edu.in',
+                avatar: 'S',
+                avatarBg: 'bg-rose-100',
+                avatarText: 'text-rose-700',
+                department: 'English',
+                classes: ['VIII-A', 'VII-B', 'IX-B'],
+                subjects: ['English'],
+                employeeId: 'KV07005-T008'
+            },
+            // Admin
+            'admin': {
+                id: 'admin',
+                password: 'admin123',
+                role: 'admin',
+                name: 'Mrs. Priya Das',
+                firstName: 'Admin',
+                email: 'principal@kvchabua.edu.in',
+                avatar: 'P',
+                avatarBg: 'bg-purple-100',
+                avatarText: 'text-purple-700',
+                designation: 'Principal',
+                employeeId: 'KV07005-P001'
+            }
+        };
+
+        // ================================================================
+        // LOGIN FUNCTIONS
+        // ================================================================
+        function handleLogin(event) {
+            event.preventDefault();
+            const userId = document.getElementById('loginUserId').value.toLowerCase().trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            // Check credentials
+            const user = usersDatabase[userId];
+            
+            if (user && user.password === password) {
+                loginUser(user);
+            } else {
+                showLoginError('Invalid User ID or Password. Please try again.');
+            }
+        }
+
+        function quickLogin(role) {
+            let user;
+            switch(role) {
+                case 'student':
+                    user = {...usersDatabase['arjun']};
+                    // Apply selected class from login page
+                    user.class = `${classRomanMap[selectedLoginClass]}-${selectedSection}`;
+                    break;
+                case 'teacher':
+                    user = {...usersDatabase['rajesh']};
+                    break;
+                case 'admin':
+                    user = {...usersDatabase['admin']};
+                    break;
+            }
+            if (user) {
+                loginUser(user);
+            }
+        }
+
+        function loginUser(user) {
+            currentUser = user;
+            currentRole = user.role;
+            isLoggedIn = true;
+            
+            // Parse class info if student
+            if (user.role === 'student' && user.class) {
+                const classParts = user.class.split('-');
+                if (classParts.length === 2) {
+                    // Find the numeric class from Roman numeral
+                    for (let num in classRomanMap) {
+                        if (classRomanMap[num] === classParts[0]) {
+                            selectedLoginClass = parseInt(num);
+                            break;
+                        }
+                    }
+                    selectedSection = classParts[1];
+                }
+            }
+            
+            // Save to session (for demo purposes)
+            sessionStorage.setItem('kvPathshalaUser', JSON.stringify(user));
+            
+            // Hide login page, show app
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('appContainer').classList.remove('hidden');
+            
+            // Update UI with user data
+            updateUIWithUserData();
+            updateRoleButtons();
+            updateSettingsClassButtons();
+            updateLessonsClassSelector();
+            
+            // Show prototype notice
+            setTimeout(() => {
+                closePrototypeNotice();
+            }, 6000);
+        }
+
+        function updateSettingsClassButtons() {
+            // Update class buttons in settings
+            document.querySelectorAll('.settings-class-btn').forEach((btn, i) => {
+                const classes = [6, 7, 8, 9, 10];
+                if (classes[i] === selectedLoginClass) {
+                    btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.remove('border-slate-200', 'text-slate-600');
+                } else {
+                    btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.add('border-slate-200', 'text-slate-600');
+                }
+            });
+            
+            // Update section buttons
+            document.querySelectorAll('.section-btn').forEach(btn => {
+                if (btn.textContent.trim() === selectedSection) {
+                    btn.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.remove('border-slate-200', 'text-slate-600');
+                } else {
+                    btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+                    btn.classList.add('border-slate-200', 'text-slate-600');
+                }
+            });
+            
+            // Update current class display
+            const settingsClass = document.getElementById('settingsCurrentClass');
+            if (settingsClass && currentUser) {
+                settingsClass.textContent = currentUser.class || 'VIII-A';
+            }
+        }
+
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('loginError');
+            const errorText = document.getElementById('loginErrorText');
+            errorText.textContent = message;
+            errorDiv.classList.remove('hidden');
+            errorDiv.classList.add('shake-animation');
+            setTimeout(() => {
+                errorDiv.classList.remove('shake-animation');
+            }, 500);
+        }
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('loginPassword');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>';
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            isLoggedIn = false;
+            currentRole = 'student';
+            
+            // Clear session
+            sessionStorage.removeItem('kvPathshalaUser');
+            
+            // Reset login form
+            document.getElementById('loginForm').reset();
+            document.getElementById('loginError').classList.add('hidden');
+            
+            // Show login page, hide app
+            document.getElementById('appContainer').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+            
+            // Close sidebar if open
+            closeSidebar();
+        }
+
+        function updateUIWithUserData() {
+            if (!currentUser) return;
+            
+            // Update greeting
+            const userName = document.getElementById('userName');
+            if (userName) userName.textContent = currentUser.firstName;
+            
+            // Update sidebar
+            const sidebarName = document.getElementById('sidebarName');
+            const sidebarRole = document.getElementById('sidebarRole');
+            const sidebarAvatar = document.getElementById('sidebarAvatar');
+            
+            if (sidebarName) sidebarName.textContent = currentUser.name;
+            
+            if (sidebarRole) {
+                switch(currentUser.role) {
+                    case 'student':
+                        sidebarRole.textContent = `Student • Class ${currentUser.class} • KV Chabua`;
+                        break;
+                    case 'teacher':
+                        sidebarRole.textContent = `Teacher • ${currentUser.department} • KV Chabua`;
+                        break;
+                    case 'admin':
+                        sidebarRole.textContent = `${currentUser.designation} • KV Chabua`;
+                        break;
+                }
+            }
+            
+            if (sidebarAvatar) {
+                sidebarAvatar.className = `w-10 h-10 ${currentUser.avatarBg} rounded-full flex items-center justify-center`;
+                sidebarAvatar.innerHTML = `<span class="${currentUser.avatarText} font-semibold">${currentUser.avatar}</span>`;
+            }
+            
+            // Update settings page profile
+            updateSettingsProfile();
+            
+            // Update stats for students
+            if (currentUser.role === 'student' && currentUser.stats) {
+                const statsElements = document.querySelectorAll('#page-home .grid.grid-cols-3 .text-2xl');
+                if (statsElements.length >= 3) {
+                    statsElements[0].textContent = currentUser.stats.lessonsCompleted;
+                    statsElements[1].textContent = currentUser.stats.accuracy + '%';
+                    statsElements[2].textContent = currentUser.stats.tasksDue;
+                }
+            }
+            
+            // Show/hide teacher panel button
+            const teacherBtn = document.getElementById('teacherPanelBtn');
+            if (teacherBtn) {
+                if (currentUser.role === 'teacher' || currentUser.role === 'admin') {
+                    teacherBtn.classList.remove('hidden');
+                } else {
+                    teacherBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function updateSettingsProfile() {
+            if (!currentUser) return;
+            
+            // Find and update the account section in settings
+            const settingsPage = document.getElementById('page-settings');
+            if (!settingsPage) return;
+            
+            const accountSection = settingsPage.querySelector('.divide-y.divide-slate-100');
+            if (accountSection) {
+                const profileDiv = accountSection.querySelector('.flex.items-center.justify-between');
+                if (profileDiv) {
+                    const avatarDiv = profileDiv.querySelector('.w-10.h-10');
+                    const nameEl = profileDiv.querySelector('.font-medium');
+                    const emailEl = profileDiv.querySelector('.text-xs.text-slate-500');
+                    
+                    if (avatarDiv) {
+                        avatarDiv.className = `w-10 h-10 ${currentUser.avatarBg} rounded-full flex items-center justify-center`;
+                        avatarDiv.innerHTML = `<span class="${currentUser.avatarText} font-semibold">${currentUser.avatar}</span>`;
+                    }
+                    if (nameEl) nameEl.textContent = currentUser.name;
+                    if (emailEl) emailEl.textContent = currentUser.email;
+                }
+            }
+        }
+
+        function checkExistingSession() {
+            const savedUser = sessionStorage.getItem('kvPathshalaUser');
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    if (usersDatabase[user.id]) {
+                        loginUser(usersDatabase[user.id]);
+                        return true;
+                    }
+                } catch (e) {
+                    console.log('Invalid session data');
+                }
+            }
+            return false;
+        }
+
+        // Dummy Lesson Data - Micro Interactions
+        const lessonData = {
+            math: {
+                title: 'Quadratic Equations',
+                subtitle: 'Mathematics • Chapter 5 • Lesson 3',
+                steps: [
+                    {
+                        type: 'intro',
+                        content: `
+                            <div class="text-center">
+                                <div class="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <svg class="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                </div>
+                                <h3 class="text-3xl font-bold text-slate-800 mb-3">Quadratic Equations</h3>
+                                <p class="text-xl text-slate-600">Standard Form: ax² + bx + c = 0</p>
+                                <p class="text-slate-500 mt-4">where a ≠ 0</p>
+                            </div>
+                        `
+                    },
+                    {
+                        type: 'fill-blank',
+                        question: 'Complete the quadratic formula:',
+                        template: 'x = (-b ± √(b² - <input type="text" id="answer1" class="w-16 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="3">)) / 2a',
+                        answer: '4ac',
+                        hint: 'Think about the discriminant'
+                    },
+                    {
+                        type: 'choose',
+                        question: 'Which of these is a quadratic equation?',
+                        options: ['2x + 5 = 0', 'x² + 3x - 4 = 0', '3x³ + x = 7', 'x/2 = 4'],
+                        correct: 1
+                    },
+                    {
+                        type: 'match',
+                        question: 'Match the equation parts to their names:',
+                        pairs: [
+                            { term: 'a', definition: 'Coefficient of x²' },
+                            { term: 'b', definition: 'Coefficient of x' },
+                            { term: 'c', definition: 'Constant term' }
+                        ]
+                    },
+                    {
+                        type: 'fill-blank',
+                        question: 'In the equation 2x² + 5x - 3 = 0:',
+                        template: 'a = <input type="text" id="answer1" class="w-12 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="2">, b = <input type="text" id="answer2" class="w-12 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="2">, c = <input type="text" id="answer3" class="w-12 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="2">',
+                        answers: ['2', '5', '-3']
+                    },
+                    {
+                        type: 'reorder',
+                        question: 'Arrange the steps to solve a quadratic equation:',
+                        items: ['Identify a, b, c', 'Write in standard form', 'Calculate discriminant', 'Apply quadratic formula', 'Simplify the answer'],
+                        correct: [1, 0, 2, 3, 4]
+                    },
+                    {
+                        type: 'choose',
+                        question: 'If discriminant (b² - 4ac) > 0, the equation has:',
+                        options: ['No real roots', 'One real root', 'Two distinct real roots', 'Imaginary roots'],
+                        correct: 2
+                    },
+                    {
+                        type: 'verbal',
+                        question: 'Explain in your own words: Why can\'t "a" be zero in a quadratic equation?',
+                        hint: 'Think about what happens to x² when a = 0'
+                    }
+                ]
+            },
+            english: {
+                title: 'Tenses - Present Perfect',
+                subtitle: 'English Grammar • Chapter 3 • Lesson 2',
+                steps: [
+                    {
+                        type: 'intro',
+                        content: `
+                            <div class="text-center">
+                                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <span class="text-4xl font-bold text-blue-600">A</span>
+                                </div>
+                                <h3 class="text-3xl font-bold text-slate-800 mb-3">Present Perfect Tense</h3>
+                                <p class="text-xl text-slate-600">has/have + past participle</p>
+                                <p class="text-slate-500 mt-4">Used for actions completed recently or with present relevance</p>
+                            </div>
+                        `
+                    },
+                    {
+                        type: 'fill-blank',
+                        question: 'Complete the sentence:',
+                        template: 'She <input type="text" id="answer1" class="w-20 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="8"> finished her homework.',
+                        answer: 'has'
+                    },
+                    {
+                        type: 'choose',
+                        question: 'Which sentence is in Present Perfect tense?',
+                        options: ['I am eating lunch.', 'I have eaten lunch.', 'I ate lunch.', 'I will eat lunch.'],
+                        correct: 1
+                    },
+                    {
+                        type: 'match',
+                        question: 'Match the subject with the correct helper verb:',
+                        pairs: [
+                            { term: 'I/You/We/They', definition: 'have' },
+                            { term: 'He/She/It', definition: 'has' }
+                        ]
+                    },
+                    {
+                        type: 'reorder',
+                        question: 'Arrange to form a correct sentence:',
+                        items: ['the movie', 'have', 'They', 'already', 'watched'],
+                        correct: [2, 1, 3, 4, 0]
+                    },
+                    {
+                        type: 'fill-blank',
+                        question: 'Convert to Present Perfect:',
+                        template: '"I write a letter" → "I <input type="text" id="answer1" class="w-20 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="8"> <input type="text" id="answer2" class="w-24 h-12 text-center text-xl border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none mx-1" maxlength="10"> a letter"',
+                        answers: ['have', 'written']
+                    },
+                    {
+                        type: 'verbal',
+                        question: 'Make a sentence using Present Perfect about something you have done today.',
+                        hint: 'Start with "I have..." or "Today, I have..."'
+                    }
+                ]
+            }
+        };
+
+        // Chapter Data
+        const chaptersData = {
+            math: [
+                { id: 1, name: 'Rational Numbers', lessons: 5, completed: 5 },
+                { id: 2, name: 'Linear Equations', lessons: 6, completed: 6 },
+                { id: 3, name: 'Understanding Quadrilaterals', lessons: 4, completed: 4 },
+                { id: 4, name: 'Practical Geometry', lessons: 5, completed: 3 },
+                { id: 5, name: 'Quadratic Equations', lessons: 8, completed: 5 },
+                { id: 6, name: 'Square and Square Roots', lessons: 6, completed: 0 },
+                { id: 7, name: 'Cubes and Cube Roots', lessons: 5, completed: 0 }
+            ],
+            science: [
+                { id: 1, name: 'Crop Production', lessons: 4, completed: 4 },
+                { id: 2, name: 'Microorganisms', lessons: 5, completed: 5 },
+                { id: 3, name: 'Synthetic Materials', lessons: 4, completed: 4 },
+                { id: 4, name: 'Chemical Reactions', lessons: 6, completed: 3 },
+                { id: 5, name: 'Force and Pressure', lessons: 5, completed: 0 }
+            ],
+            english: [
+                { id: 1, name: 'The Best Christmas Present', lessons: 4, completed: 4 },
+                { id: 2, name: 'The Tsunami', lessons: 5, completed: 5 },
+                { id: 3, name: 'Glimpses of the Past', lessons: 4, completed: 3 },
+                { id: 4, name: 'Bepin Choudhury\'s Lapse', lessons: 5, completed: 0 }
+            ]
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for existing session first
+            if (!checkExistingSession()) {
+                // No existing session, show login page
+                document.getElementById('loginPage').classList.remove('hidden');
+                document.getElementById('appContainer').classList.add('hidden');
+            }
+            
+            updateNavigation();
+            updateRoleButtons();
+            checkOnlineStatus();
+        });
+
+        // PWA Install Prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').classList.remove('hidden');
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((result) => {
+                    deferredPrompt = null;
+                    document.getElementById('installPrompt').classList.add('hidden');
+                });
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('installPrompt').classList.add('hidden');
+        }
+
+        function closePrototypeNotice() {
+            const notice = document.getElementById('prototypeNotice');
+            notice.style.opacity = '0';
+            notice.style.transform = 'translateY(-20px)';
+            notice.style.transition = 'all 0.3s ease';
+            setTimeout(() => notice.remove(), 300);
+        }
+
+        // Check Online Status
+        function checkOnlineStatus() {
+            const status = document.getElementById('connectionStatus');
+            if (navigator.onLine) {
+                status.innerHTML = '<div class="w-2 h-2 bg-emerald-500 rounded-full"></div><span class="text-slate-600">Online</span>';
+            } else {
+                status.innerHTML = '<div class="w-2 h-2 bg-amber-500 rounded-full"></div><span class="text-slate-600">Offline</span>';
+            }
+        }
+
+        window.addEventListener('online', checkOnlineStatus);
+        window.addEventListener('offline', checkOnlineStatus);
+
+        // Navigation
+        function navigateTo(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            currentPage = page;
+            
+            const titles = {
+                home: 'Dashboard',
+                lessons: 'Lessons',
+                timetable: 'Timetable',
+                homework: 'Homework & Tasks',
+                progress: 'Progress',
+                language: 'Language Learning',
+                settings: 'Settings'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || 'KV Pathshala';
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                const page = btn.dataset.page;
+                if (page === currentPage) {
+                    btn.classList.add('text-blue-600');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('text-blue-600');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+        }
+
+        // Sidebar
+        function openSidebar() {
+            document.getElementById('sidebar').classList.add('open');
+            document.getElementById('sidebarOverlay').classList.add('open');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').classList.remove('open');
+        }
+
+        // Role Switching (Demo mode - allows switching between demo accounts)
+        function switchRole(role) {
+            if (role === 'panel') {
+                closeSidebar();
+                enterPanelMode();
+                return;
+            }
+            
+            // Switch to demo account for that role
+            let demoUser;
+            switch(role) {
+                case 'student':
+                    demoUser = usersDatabase['arjun'];
+                    break;
+                case 'teacher':
+                    demoUser = usersDatabase['rajesh'];
+                    break;
+                case 'admin':
+                    demoUser = usersDatabase['admin'];
+                    break;
+            }
+            
+            if (demoUser) {
+                currentUser = demoUser;
+                currentRole = demoUser.role;
+                sessionStorage.setItem('kvPathshalaUser', JSON.stringify(demoUser));
+                updateUIWithUserData();
+                updateRoleButtons();
+            }
+        }
+
+        function updateRoleButtons() {
+            document.querySelectorAll('.role-btn').forEach(btn => {
+                if (btn.dataset.role === currentRole || (btn.dataset.role === 'panel' && false)) {
+                    btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                    btn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200');
+                } else {
+                    btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                    btn.classList.add('bg-white', 'text-slate-600', 'border-slate-200');
+                }
+            });
+        }
+
+        function updateUIForRole() {
+            // This function is now handled by updateUIWithUserData()
+            updateUIWithUserData();
+        }
+
+        // Syllabus Navigation
+        function selectClass(classNum) {
+            document.querySelectorAll('.class-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'border-blue-500');
+                btn.classList.add('bg-white', 'border-slate-200');
+                btn.querySelector('span').classList.remove('text-blue-700');
+                btn.querySelector('span').classList.add('text-slate-700');
+                btn.querySelector('p').classList.remove('text-blue-600');
+                btn.querySelector('p').classList.add('text-slate-500');
+            });
+        }
+
+        let currentSubject = '';
+
+        function selectSubject(subject) {
+            currentSubject = subject;
+            document.getElementById('lessonsNav').classList.add('hidden');
+            document.getElementById('chaptersView').classList.remove('hidden');
+            
+            const subjectNames = { math: 'Mathematics', science: 'Science', english: 'English', hindi: 'Hindi', sanskrit: 'Sanskrit', social: 'Social Science' };
+            document.getElementById('chapterTitle').textContent = subjectNames[subject] + ' - Chapters';
+            
+            renderChapters(subject);
+        }
+
+        function renderChapters(subject) {
+            const chapters = chaptersData[subject] || chaptersData.math;
+            const container = document.getElementById('chaptersList');
+            container.innerHTML = chapters.map(ch => `
+                <div onclick="selectChapter(${ch.id})" class="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-blue-300 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${ch.completed === ch.lessons ? 'bg-emerald-100' : 'bg-slate-100'} rounded-lg flex items-center justify-center">
+                                ${ch.completed === ch.lessons ? 
+                                    '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' :
+                                    `<span class="font-semibold text-slate-600">${ch.id}</span>`
+                                }
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">${ch.name}</p>
+                                <p class="text-xs text-slate-500">${ch.lessons} lessons • ${ch.completed} completed</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                <div class="h-full ${ch.completed === ch.lessons ? 'bg-emerald-500' : 'bg-blue-500'} rounded-full" style="width: ${(ch.completed/ch.lessons)*100}%"></div>
+                            </div>
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function selectChapter(chapterId) {
+            document.getElementById('chaptersView').classList.add('hidden');
+            document.getElementById('lessonsView').classList.remove('hidden');
+            document.getElementById('lessonTitle').textContent = 'Chapter ' + chapterId + ' - Lessons';
+            
+            // Render dummy lessons
+            const container = document.getElementById('lessonsList');
+            const lessons = [
+                { id: 1, name: 'Introduction', duration: '5 min', completed: true },
+                { id: 2, name: 'Key Concepts', duration: '8 min', completed: true },
+                { id: 3, name: 'Practice Problems', duration: '10 min', completed: false },
+                { id: 4, name: 'Interactive Quiz', duration: '6 min', completed: false },
+                { id: 5, name: 'Summary & Review', duration: '4 min', completed: false }
+            ];
+            
+            container.innerHTML = lessons.map(l => `
+                <div onclick="startLesson('${currentSubject}')" class="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-blue-300 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 ${l.completed ? 'bg-emerald-100' : 'bg-blue-100'} rounded-lg flex items-center justify-center">
+                                ${l.completed ? 
+                                    '<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' :
+                                    '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+                                }
+                            </div>
+                            <div>
+                                <p class="font-medium text-slate-800">${l.name}</p>
+                                <p class="text-xs text-slate-500">${l.duration}</p>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function backToSubjects() {
+            document.getElementById('chaptersView').classList.add('hidden');
+            document.getElementById('lessonsNav').classList.remove('hidden');
+        }
+
+        function backToChapters() {
+            document.getElementById('lessonsView').classList.add('hidden');
+            document.getElementById('chaptersView').classList.remove('hidden');
+        }
+
+        // Panel Mode
+        function enterPanelMode() {
+            document.getElementById('panelMode').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('bottomNav').classList.add('hidden');
+            document.body.style.overflow = 'hidden';
+            
+            startLesson('math');
+        }
+
+        function exitPanelMode() {
+            document.getElementById('panelMode').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            document.body.style.overflow = '';
+            currentStep = 0;
+        }
+
+        function startLesson(subject) {
+            const lesson = lessonData[subject] || lessonData.math;
+            lessonSteps = lesson.steps;
+            currentStep = 0;
+            
+            document.getElementById('panelLessonTitle').textContent = lesson.title;
+            document.getElementById('panelLessonSubtitle').textContent = lesson.subtitle;
+            document.getElementById('totalSteps').textContent = lessonSteps.length;
+            
+            if (!document.getElementById('panelMode').classList.contains('hidden')) {
+                // Already in panel mode
+            } else {
+                document.getElementById('panelMode').classList.remove('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                document.getElementById('bottomNav').classList.add('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+            
+            renderStep();
+        }
+
+        function renderStep() {
+            const step = lessonSteps[currentStep];
+            const container = document.getElementById('microInteraction');
+            document.getElementById('currentStep').textContent = currentStep + 1;
+            document.getElementById('panelProgressBar').style.width = ((currentStep + 1) / lessonSteps.length * 100) + '%';
+            
+            document.getElementById('prevBtn').disabled = currentStep === 0;
+            document.getElementById('prevBtn').classList.toggle('opacity-50', currentStep === 0);
+            
+            const isLast = currentStep === lessonSteps.length - 1;
+            document.getElementById('verifyBtn').classList.toggle('hidden', step.type !== 'verbal');
+            
+            let html = '';
+            
+            switch (step.type) {
+                case 'intro':
+                    html = `<div class="fade-in">${step.content}</div>`;
+                    break;
+                    
+                case 'fill-blank':
+                    html = `
+                        <div class="bg-white rounded-2xl shadow-lg p-8 fade-in">
+                            <p class="text-sm text-blue-600 font-medium mb-2">Fill in the Blank</p>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-6">${step.question}</h3>
+                            <div class="text-2xl text-slate-700 leading-relaxed" id="fillBlankArea">
+                                ${step.template}
+                            </div>
+                            ${step.hint ? `<p class="text-sm text-slate-400 mt-4">💡 Hint: ${step.hint}</p>` : ''}
+                            <button onclick="checkFillBlank()" class="mt-6 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors">
+                                Check Answer
+                            </button>
+                            <div id="feedbackArea" class="mt-4"></div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'choose':
+                    html = `
+                        <div class="bg-white rounded-2xl shadow-lg p-8 fade-in">
+                            <p class="text-sm text-emerald-600 font-medium mb-2">Choose the Correct Answer</p>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-6">${step.question}</h3>
+                            <div class="grid grid-cols-2 gap-4" id="chooseOptions">
+                                ${step.options.map((opt, i) => `
+                                    <button onclick="checkChoice(${i}, ${step.correct})" class="choice-btn p-4 text-left border-2 border-slate-200 rounded-xl hover:border-blue-300 transition-all text-lg">
+                                        <span class="inline-block w-8 h-8 bg-slate-100 rounded-full text-center leading-8 mr-3 text-sm font-medium">${String.fromCharCode(65+i)}</span>
+                                        ${opt}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <div id="feedbackArea" class="mt-4"></div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'match':
+                    html = `
+                        <div class="bg-white rounded-2xl shadow-lg p-8 fade-in">
+                            <p class="text-sm text-purple-600 font-medium mb-2">Match the Following</p>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-6">${step.question}</h3>
+                            <div class="grid grid-cols-2 gap-8">
+                                <div class="space-y-3">
+                                    ${step.pairs.map((p, i) => `
+                                        <div class="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl text-center font-semibold text-lg" draggable="true" data-term="${i}">${p.term}</div>
+                                    `).join('')}
+                                </div>
+                                <div class="space-y-3">
+                                    ${step.pairs.map((p, i) => `
+                                        <div class="p-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl text-center text-slate-600">${p.definition}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <button onclick="checkMatch()" class="mt-6 px-6 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition-colors">
+                                Check Matches
+                            </button>
+                            <div id="feedbackArea" class="mt-4"></div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'reorder':
+                    const shuffled = [...step.items].sort(() => Math.random() - 0.5);
+                    html = `
+                        <div class="bg-white rounded-2xl shadow-lg p-8 fade-in">
+                            <p class="text-sm text-amber-600 font-medium mb-2">Arrange in Order</p>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-6">${step.question}</h3>
+                            <div id="reorderContainer" class="space-y-3">
+                                ${shuffled.map((item, i) => `
+                                    <div class="reorder-item p-4 bg-amber-50 border-2 border-amber-200 rounded-xl cursor-move flex items-center gap-3" draggable="true" data-original="${step.items.indexOf(item)}">
+                                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                                        <span class="text-lg">${item}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button onclick="checkReorder()" class="mt-6 px-6 py-3 bg-amber-600 text-white font-medium rounded-xl hover:bg-amber-700 transition-colors">
+                                Check Order
+                            </button>
+                            <div id="feedbackArea" class="mt-4"></div>
+                        </div>
+                    `;
+                    setTimeout(initDragDrop, 100);
+                    break;
+                    
+                case 'verbal':
+                    html = `
+                        <div class="bg-white rounded-2xl shadow-lg p-8 fade-in">
+                            <p class="text-sm text-rose-600 font-medium mb-2">Verbal Answer (Teacher Verified)</p>
+                            <h3 class="text-xl font-semibold text-slate-800 mb-6">${step.question}</h3>
+                            <div class="bg-rose-50 border-2 border-rose-200 rounded-xl p-6 text-center">
+                                <div class="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                </div>
+                                <p class="text-slate-600">Student answers verbally</p>
+                                <p class="text-sm text-slate-400 mt-2">Teacher will verify the answer</p>
+                            </div>
+                            ${step.hint ? `<p class="text-sm text-slate-400 mt-4">💡 Expected: ${step.hint}</p>` : ''}
+                            <div id="feedbackArea" class="mt-4"></div>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function checkFillBlank() {
+            const step = lessonSteps[currentStep];
+            const inputs = document.querySelectorAll('#fillBlankArea input');
+            let correct = true;
+            
+            if (step.answers) {
+                inputs.forEach((input, i) => {
+                    if (input.value.toLowerCase().trim() !== step.answers[i].toLowerCase()) {
+                        correct = false;
+                        input.classList.add('border-red-500', 'bg-red-50', 'shake-animation');
+                    } else {
+                        input.classList.add('border-emerald-500', 'bg-emerald-50');
+                    }
+                });
+            } else {
+                if (inputs[0].value.toLowerCase().trim() === step.answer.toLowerCase()) {
+                    inputs[0].classList.add('border-emerald-500', 'bg-emerald-50');
+                } else {
+                    correct = false;
+                    inputs[0].classList.add('border-red-500', 'bg-red-50', 'shake-animation');
+                }
+            }
+            
+            showFeedback(correct);
+        }
+
+        function checkChoice(selected, correct) {
+            const buttons = document.querySelectorAll('.choice-btn');
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === correct) {
+                    btn.classList.add('border-emerald-500', 'bg-emerald-50');
+                    btn.innerHTML = '<span class="tick-animation inline-block">✓</span> ' + btn.innerHTML;
+                } else if (i === selected && selected !== correct) {
+                    btn.classList.add('border-red-500', 'bg-red-50', 'shake-animation');
+                }
+            });
+            showFeedback(selected === correct);
+        }
+
+        function checkMatch() {
+            showFeedback(true);
+        }
+
+        function checkReorder() {
+            const items = document.querySelectorAll('.reorder-item');
+            const step = lessonSteps[currentStep];
+            let correct = true;
+            
+            items.forEach((item, i) => {
+                const originalIndex = parseInt(item.dataset.original);
+                if (step.correct[i] !== originalIndex) {
+                    correct = false;
+                    item.classList.add('border-red-500', 'bg-red-50');
+                } else {
+                    item.classList.add('border-emerald-500', 'bg-emerald-50');
+                }
+            });
+            
+            showFeedback(correct);
+        }
+
+        function verifyVerbal() {
+            showFeedback(true);
+        }
+
+        function showFeedback(correct) {
+            const feedback = document.getElementById('feedbackArea');
+            if (correct) {
+                feedback.innerHTML = `
+                    <div class="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl slide-up">
+                        <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center tick-animation">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <span class="text-emerald-700 font-medium">Correct! Well done.</span>
+                    </div>
+                `;
+            } else {
+                feedback.innerHTML = `
+                    <div class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl slide-up">
+                        <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </div>
+                        <span class="text-red-700 font-medium">Not quite. Try again!</span>
+                    </div>
+                `;
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < lessonSteps.length - 1) {
+                currentStep++;
+                renderStep();
+            } else {
+                // Lesson complete
+                document.getElementById('microInteraction').innerHTML = `
+                    <div class="text-center fade-in">
+                        <div class="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 tick-animation">
+                            <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <h3 class="text-3xl font-bold text-slate-800 mb-3">Lesson Complete!</h3>
+                        <p class="text-xl text-slate-600">Great work on Quadratic Equations</p>
+                        <div class="flex justify-center gap-4 mt-8">
+                            <button onclick="exitPanelMode()" class="px-6 py-3 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200">Exit</button>
+                            <button onclick="startLesson('math')" class="px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700">Restart Lesson</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderStep();
+            }
+        }
+
+        function resetLesson() {
+            currentStep = 0;
+            renderStep();
+        }
+
+        function showAllAnswers() {
+            // Reveal all answers for teacher reference
+            alert('Teacher mode: Answers revealed in console');
+            console.log('Current lesson answers:', lessonSteps);
+        }
+
+        function initDragDrop() {
+            const container = document.getElementById('reorderContainer');
+            if (!container) return;
+            
+            let draggedItem = null;
+            
+            container.querySelectorAll('.reorder-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    item.classList.add('dragging');
+                });
+                
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    draggedItem = null;
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (item !== draggedItem) {
+                        item.classList.add('drag-over');
+                    }
+                });
+                
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('drag-over');
+                });
+                
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    item.classList.remove('drag-over');
+                    if (draggedItem && item !== draggedItem) {
+                        const allItems = [...container.querySelectorAll('.reorder-item')];
+                        const draggedIndex = allItems.indexOf(draggedItem);
+                        const dropIndex = allItems.indexOf(item);
+                        
+                        if (draggedIndex < dropIndex) {
+                            item.after(draggedItem);
+                        } else {
+                            item.before(draggedItem);
+                        }
+                    }
+                });
+            });
+        }
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Service worker would be registered here in production
+                console.log('PWA ready for service worker registration');
+            });
+        }
+    </script>
+</body>
+</html>
